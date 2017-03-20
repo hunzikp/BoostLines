@@ -1,0 +1,4 @@
+"0","## Cal Distances"
+"0","dmat <- bDistance(test.bl)"
+"0","## Compare with gDistance"
+"0","dmat_geos <- gDistance(test.sl, byid=TRUE)"

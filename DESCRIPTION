@@ -1,0 +1,16 @@
+Package: BoostLines
+Type: Package
+Title: Fast Geometric Operations on Lines
+Version: 0.1.0.9000
+Author: Philipp Hunziker
+Maintainer: Philipp Hunziker <hunzikp@gmail.com>
+Description: Fast geometric operations on lines, esp. noding.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+    Rcpp (>= 0.12.9),
+    BH,
+    sp
+LinkingTo: Rcpp, BH
+RoxygenNote: 5.0.1

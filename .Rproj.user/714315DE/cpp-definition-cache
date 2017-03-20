@@ -1,0 +1,167 @@
+[
+    {
+        "definitions" : [
+            {
+                "column" : 105,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/BoostLines_types.h",
+                "kind" : 8,
+                "line" : 9,
+                "name" : "line_collection",
+                "parent_name" : "",
+                "usr" : "c:BoostLines_types.h@T@line_collection"
+            }
+        ],
+        "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/BoostLines_types.h",
+        "file_last_write" : 1490023073
+    },
+    {
+        "definitions" : [
+            {
+                "column" : 41,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 8,
+                "line" : 16,
+                "name" : "point",
+                "parent_name" : "",
+                "usr" : "c:boost_lines.cpp@T@point"
+            },
+            {
+                "column" : 38,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 8,
+                "line" : 17,
+                "name" : "line",
+                "parent_name" : "",
+                "usr" : "c:boost_lines.cpp@T@line"
+            },
+            {
+                "column" : 7,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 2,
+                "line" : 18,
+                "name" : "line_collection",
+                "parent_name" : "",
+                "usr" : "c:@C@line_collection"
+            },
+            {
+                "column" : 8,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 3,
+                "line" : 20,
+                "name" : "dpoint",
+                "parent_name" : "",
+                "usr" : "c:@S@dpoint"
+            },
+            {
+                "column" : 8,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 3,
+                "line" : 30,
+                "name" : "closest",
+                "parent_name" : "",
+                "usr" : "c:@S@closest"
+            },
+            {
+                "column" : 8,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 7,
+                "line" : 31,
+                "name" : "operator(const dpoint &, const dpoint &)",
+                "parent_name" : "closest",
+                "usr" : "c:@S@closest@F@operator()#&1$@S@dpoint#S0_#"
+            },
+            {
+                "column" : 6,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 39,
+                "name" : "make_line(NumericMatrix)",
+                "parent_name" : "",
+                "usr" : "c:@F@make_line#$@N@Rcpp@C@Matrix>#VI14#@N@Rcpp@CT>1#T@PreserveStorage#"
+            },
+            {
+                "column" : 17,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 49,
+                "name" : "make_lc(List)",
+                "parent_name" : "",
+                "usr" : "c:@F@make_lc#$@N@Rcpp@C@Vector>#VI19#@N@Rcpp@CT>1#T@PreserveStorage#"
+            },
+            {
+                "column" : 6,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 62,
+                "name" : "point_within(const point &, const line &, const point &, const point &)",
+                "parent_name" : "",
+                "usr" : "c:@F@point_within#&1$@N@boost@N@geometry@N@model@N@d2@C@point_xy>#d#$@N@boost@N@geometry@N@cs@S@cartesian#&1$@N@boost@N@geometry@N@model@C@linestring>#S1_#@N@std@N@__1@CT>2#T#T@vector#@N@std@N@__1@CT>1#T@allocator#S0_#S0_#"
+            },
+            {
+                "column" : 17,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 69,
+                "name" : "break_line_on_points(const line &, const std::vector<point> &)",
+                "parent_name" : "",
+                "usr" : "c:@F@break_line_on_points#&1$@N@boost@N@geometry@N@model@C@linestring>#$@N@boost@N@geometry@N@model@N@d2@C@point_xy>#d#$@N@boost@N@geometry@N@cs@S@cartesian#@N@std@N@__1@CT>2#T#T@vector#@N@std@N@__1@CT>1#T@allocator#&1$@N@std@N@__1@C@vector>#S2_#$@N@std@N@__1@C@allocator>#S2_#"
+            },
+            {
+                "column" : 17,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 146,
+                "name" : "break_line_on_line(const line &, const line &)",
+                "parent_name" : "",
+                "usr" : "c:@F@break_line_on_line#&1$@N@boost@N@geometry@N@model@C@linestring>#$@N@boost@N@geometry@N@model@N@d2@C@point_xy>#d#$@N@boost@N@geometry@N@cs@S@cartesian#@N@std@N@__1@CT>2#T#T@vector#@N@std@N@__1@CT>1#T@allocator#S0_#"
+            },
+            {
+                "column" : 17,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 166,
+                "name" : "break_line_on_line_collection(const line &, const line_collection &)",
+                "parent_name" : "",
+                "usr" : "c:@F@break_line_on_line_collection#&1$@N@boost@N@geometry@N@model@C@linestring>#$@N@boost@N@geometry@N@model@N@d2@C@point_xy>#d#$@N@boost@N@geometry@N@cs@S@cartesian#@N@std@N@__1@CT>2#T#T@vector#@N@std@N@__1@CT>1#T@allocator#&1$@C@line_collection#"
+            },
+            {
+                "column" : 6,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 200,
+                "name" : "node_lc(const line_collection &)",
+                "parent_name" : "",
+                "usr" : "c:@F@node_lc#&1$@C@line_collection#"
+            },
+            {
+                "column" : 15,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 229,
+                "name" : "intersects_lc(const line_collection &)",
+                "parent_name" : "",
+                "usr" : "c:@F@intersects_lc#&1$@C@line_collection#"
+            },
+            {
+                "column" : 15,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 252,
+                "name" : "distance_lc(const line_collection &)",
+                "parent_name" : "",
+                "usr" : "c:@F@distance_lc#&1$@C@line_collection#"
+            },
+            {
+                "column" : 6,
+                "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+                "kind" : 6,
+                "line" : 275,
+                "name" : "unpack_lc(const line_collection &)",
+                "parent_name" : "",
+                "usr" : "c:@F@unpack_lc#&1$@C@line_collection#"
+            }
+        ],
+        "file" : "/home/hunzikp/Projects/BoostLines/BoostLines/src/boost_lines.cpp",
+        "file_last_write" : 1490023921
+    }
+]

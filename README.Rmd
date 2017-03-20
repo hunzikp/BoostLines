@@ -1,0 +1,88 @@
+---
+title: "BoostLines package"
+author: "Philipp Hunziker"
+date: "March 20, 2017"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Fast geometric operations on lines using [Boost Geometries](http://www.boost.org/doc/libs/1_63_0/libs/geometry/doc/html/index.html).
+
+<span style="color:red">CAUTION</span>: This package is in development - its interface may change.
+
+## Installation
+
+You can install the package directly from this repository:
+
+```{r eval=FALSE}
+library(devtools)
+install_github("hunzikp/BoostLines")
+```
+
+
+## Usage
+
+### Boost/Unboost
+
+```{r boost}
+library(BoostLines)
+library(sp)
+
+## Make some lines
+set.seed(0)
+N <- 250
+lines.ls <- vector('list', N)
+for (i in 1:N) {
+  strt <- runif(1)
+  range <- runif(1)
+  coords <- matrix(runif(4, strt, strt+range), 2, 2)
+  lines.ls[[i]] <- Lines(slinelist = list(Line(coords = coords)), ID = i)
+}
+test.sl <- SpatialLines(lines.ls)
+
+## Make BoostLines object
+test.bl <- BoostLines(test.sl)
+
+## Cast back to SpatialLines
+test_cast.sl <- unboost(test.bl) 
+```
+
+
+### Noding
+
+```{r node}
+## Node
+out.ls <- bNode(test.bl)
+
+## Unpack & plot result
+noded.sl <- unboost(out.ls[[1]])
+noded.ids <- out.ls[[2]]  # integer vector of original IDs
+plot(noded.sl, col=sample(colors(), length(noded.sl), replace=TRUE))
+```
+
+### Intersection
+
+```{r intersects}
+## Intersect query
+lmat <- bIntersects(test.bl)
+
+## Compare with gIntersects
+library(rgeos)
+lmat_geos <- gIntersects(test.sl, byid=TRUE)
+all(lmat == lmat_geos)
+```
+
+### Minimal Distance
+
+```{r distance}
+## Cal Distances
+dmat <- bDistance(test.bl)
+
+## Compare with gDistance
+dmat_geos <- gDistance(test.sl, byid=TRUE)
+summary(abs(as.vector(dmat - dmat_geos)))
+```
+
