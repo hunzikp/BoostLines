@@ -143,58 +143,84 @@ line_collection break_line_on_points (const line &l, const std::vector<point> &p
   return(out_lc);
 }
 
-line_collection break_line_on_line (const line &l1, const line &l2) {
+// line_collection break_line_on_line (const line &l1, const line &l2) {
+//   // Does not break lines with overlapping segments!
+//
+//   line_collection broken_lc;
+//   if (bg::intersects(l1, l2) & !bg::overlaps(l1, l2)) {
+//
+//     std::vector<point> intersection_points;
+//     bg::intersection(l1, l2, intersection_points);
+//     broken_lc = break_line_on_points(l1, intersection_points);
+//
+//   } else {
+//
+//     line copy_line = l1;
+//     broken_lc.push_back(copy_line);
+//
+//   }
+//
+//   return(broken_lc);
+// }
+//
+//
+// line_collection break_line_on_line_collection (const line &l, const line_collection &breaker_lc) {
+//   // Ignores collinear segments
+//
+//   line_collection input_lc;
+//   line_collection output_lc;
+//   input_lc.push_back(l);
+//
+//   for (int i = 0; i < breaker_lc.size(); i++) {
+//
+//     line this_breaker = breaker_lc[i];
+//
+//     for (int j = 0; j < input_lc.size(); j++) {
+//
+//       line this_line = input_lc[j];
+//
+//       if (bg::intersects(this_line, this_breaker)) {
+//
+//         line_collection broken_blc = break_line_on_line(this_line, this_breaker);
+//         for (int k = 0; k < broken_blc.size(); k++) {
+//           output_lc.push_back(broken_blc[k]);
+//         }
+//
+//       } else {
+//         output_lc.push_back(this_line);
+//       }
+//     }
+//
+//     input_lc = output_lc;
+//     output_lc.clear();
+//   }
+//
+//   return(input_lc);
+// }
+
+line_collection break_line_on_line_collection (const line &l, const line_collection &lc) {
   // Does not break lines with overlapping segments!
 
+  std::vector<point> intersection_points;
+  for (int i = 0; i < lc.size(); i++) {
+    line this_breaker = lc[i];
+    if (bg::intersects(l, this_breaker) & !bg::overlaps(l, this_breaker)) {
+
+      std::vector<point> this_intersection_points;
+      bg::intersection(l, this_breaker, this_intersection_points);
+      intersection_points.insert(intersection_points.end(), this_intersection_points.begin(), this_intersection_points.end());
+    }
+  }
+
   line_collection broken_lc;
-  if (bg::intersects(l1, l2) & !bg::overlaps(l1, l2)) {
-
-    std::vector<point> intersection_points;
-    bg::intersection(l1, l2, intersection_points);
-    broken_lc = break_line_on_points(l1, intersection_points);
-
+  if (intersection_points.size() > 0) {
+    broken_lc = break_line_on_points(l, intersection_points);
   } else {
-
-    line copy_line = l1;
+    line copy_line = l;
     broken_lc.push_back(copy_line);
-
   }
 
   return(broken_lc);
-}
-
-line_collection break_line_on_line_collection (const line &l, const line_collection &breaker_lc) {
-  // Ignores collinear segments
-
-  line_collection input_lc;
-  line_collection output_lc;
-  input_lc.push_back(l);
-
-  for (int i = 0; i < breaker_lc.size(); i++) {
-
-    line this_breaker = breaker_lc[i];
-
-    for (int j = 0; j < input_lc.size(); j++) {
-
-      line this_line = input_lc[j];
-
-      if (bg::intersects(this_line, this_breaker)) {
-
-        line_collection broken_blc = break_line_on_line(this_line, this_breaker);
-        for (int k = 0; k < broken_blc.size(); k++) {
-          output_lc.push_back(broken_blc[k]);
-        }
-
-      } else {
-        output_lc.push_back(this_line);
-      }
-    }
-
-    input_lc = output_lc;
-    output_lc.clear();
-  }
-
-  return(input_lc);
 }
 
 List node_lc (const line_collection &in_lc) {
