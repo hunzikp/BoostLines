@@ -9,15 +9,20 @@
 #include <boost/geometry/geometries/linestring.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/assign/list_of.hpp>
+#include <boost/geometry/index/rtree.hpp>
 using namespace Rcpp;
 namespace bg = boost::geometry;
+namespace bgi = boost::geometry::index;
 
 
-// TYPEDEFS & CLASSES
+// TYPEDEFS
 typedef bg::model::d2::point_xy<double> point;
 typedef bg::model::linestring<point> line;
-class line_collection : public std::vector<line>{
-};
+typedef bg::model::segment<point> segment;
+typedef std::pair<segment, unsigned int> isegment;
+typedef std::vector<line> line_collection;
+
+// STRUCTS
 struct dpoint {
 
   dpoint(point inp, double indist) {
@@ -35,6 +40,62 @@ struct closest {
 };
 
 
+// BL MAIN CLASS
+class boost_line_collection {
+public:
+
+  boost_line_collection(line_collection in_lc) {
+    line_collection new_lc = in_lc;
+    orig_lc = new_lc;
+  }
+
+  line_collection get_line_collection() {
+    line_collection new_lc = orig_lc;
+    return(orig_lc);
+  }
+
+  void make_rtree() {
+    std::vector<isegment> line_index_pairs;
+
+    // Create vector of segment-index pairs
+    for(int i = 0; i < orig_lc.size(); i++) {
+      line this_line = orig_lc[i];
+      for (int j = 0; j < (this_line.size()-1); j++) {
+        segment new_segment;
+        new_segment.first = this_line[j];
+        new_segment.second = this_line[j+1];
+        line_index_pairs.push_back(std::make_pair(new_segment, static_cast<unsigned int>(i)));
+      }
+    }
+
+    // Create rtree using packing algorithm
+    bgi::rtree<isegment, bgi::quadratic<16> > rtree_new(line_index_pairs);
+    rtree_ = rtree_new;
+  }
+
+  std::vector<int> get_intersecting_ids(line in_line) {
+
+    std::vector<isegment> result_n;
+    rtree_.query(bgi::intersects(in_line), std::back_inserter(result_n));
+    std::vector<int> indexes;
+    std::vector<isegment>::iterator itr;
+    for (itr = result_n.begin(); itr != result_n.end(); ++itr) {
+      isegment value = *itr;
+      indexes.push_back(value.second);
+    }
+
+    std::sort(indexes.begin(), indexes.end());
+    std::vector<int>::iterator last = std::unique(indexes.begin(), indexes.end());
+    indexes.erase(last, indexes.end());
+
+    return indexes;
+  }
+
+private:
+  line_collection orig_lc;
+  bgi::rtree<isegment, bgi::quadratic<16> > rtree_;
+};
+
 
 // R CONSTRUCTORS
 line make_line(NumericMatrix coord) {
@@ -47,19 +108,40 @@ line make_line(NumericMatrix coord) {
   return(new_line);
 }
 
-line_collection make_lc(List coord_ls) {
-
-  line_collection lc;
+boost_line_collection make_blc(List coord_ls) {
+  line_collection new_lc;
   for (int i = 0; i < coord_ls.size(); i++) {
     line new_line = make_line(coord_ls(i));
-    lc.push_back(new_line);
+    new_lc.push_back(new_line);
   }
-  return(lc);
+  boost_line_collection new_blc(new_lc);
+  return(new_blc);
 }
 
 
+// R UNPACKERS
+List unpack_blc(boost_line_collection blc) {
 
-// NODING
+  line_collection lc = blc.get_line_collection();
+  int n_lines = lc.size();
+  List coord_ls(n_lines);
+
+  for (int i = 0; i < n_lines; i++) {
+    line this_line = lc[i];
+    int len = this_line.size();
+    NumericMatrix this_coord(len, 2);
+    for (int j = 0; j < len; j++) {
+      this_coord(j,0) = this_line[j].x();
+      this_coord(j,1) = this_line[j].y();
+    }
+    coord_ls(i) = this_coord;
+  }
+
+  return coord_ls;
+}
+
+
+// NODING FUNCTIONS
 bool point_within (const point &p, const line & l, const point &startpoint, const point &endpoint) {
 
   bool ret = bg::intersects(p, l) & !bg::intersects(startpoint, p) & !bg::intersects(endpoint,p);
@@ -151,6 +233,183 @@ line_collection break_line_on_points (const line &l, const std::vector<point> &p
   return(out_lc);
 }
 
+List node_blc (boost_line_collection blc) {
+  // Ignores collinear segments
+
+  line_collection in_lc = blc.get_line_collection();
+
+  // Make Rtree
+  blc.make_rtree();
+
+  // Get all intersection points
+  std::vector<std::vector<point> > intersection_matrix(in_lc.size(), std::vector<point>());
+  for (int i = 0; i < in_lc.size(); i++) {
+    line i_line = in_lc[i];
+    std::vector<int> j_idx = blc.get_intersecting_ids(i_line);
+    if (j_idx.size() > 0) {
+      for (int k = 0; k < j_idx.size(); k++) {
+        int j = j_idx[k];
+        if (j > i) {
+          line j_line = in_lc[j];
+          if (bg::intersects(i_line, j_line) & !bg::overlaps(i_line, j_line)) {
+
+            std::vector<point> intersection_points;
+            bg::intersection(i_line, j_line, intersection_points);
+
+            intersection_matrix[j].insert(intersection_matrix[j].end(), intersection_points.begin(), intersection_points.end());
+            intersection_matrix[i].insert(intersection_matrix[i].end(), intersection_points.begin(), intersection_points.end());
+          }
+        }
+      }
+    }
+  }
+
+
+  // line_collection::const_iterator i, j;
+  // std::vector<std::vector<point> >::iterator mi, mj;
+  // for (i = in_lc.begin(), mi = intersection_matrix.begin(); i != in_lc.end(); ++i, ++mi) {
+  //   for (j = i, mj = mi; j != in_lc.end(); ++j, ++mj) {
+  //
+  //     line i_line = *i;
+  //     line j_line = *j;
+  //
+  //     if (bg::intersects(i_line, j_line) & !bg::overlaps(i_line, j_line)) {
+  //
+  //       std::vector<point> intersection_points;
+  //       bg::intersection(i_line, j_line, intersection_points);
+  //
+  //       (*mj).insert((*mj).end(), intersection_points.begin(), intersection_points.end());
+  //       (*mi).insert((*mi).end(), intersection_points.begin(), intersection_points.end());
+  //     }
+  //   }
+  // }
+
+  // Break lines
+  line_collection out_lc;
+  std::vector<int> indices;
+
+  int counter = 1;
+  line_collection::const_iterator lc_it;
+  std::vector<std::vector<point> >::iterator ipoint_it;
+  for(lc_it = in_lc.begin(), ipoint_it = intersection_matrix.begin(); lc_it != in_lc.end(); ++lc_it, ++ipoint_it) {
+
+    line this_line = *lc_it;
+    std::vector<point> intersection_points = *ipoint_it;
+
+    // Break this line on break points
+    line_collection broken_lc;
+    if (intersection_points.size() > 0) {
+      broken_lc = break_line_on_points(this_line, intersection_points);
+      for (int j = 0; j < broken_lc.size(); j++) {
+        out_lc.push_back(broken_lc[j]);
+        indices.push_back(counter);
+      }
+    } else {
+      line copy_line = this_line;
+      out_lc.push_back(copy_line);
+      indices.push_back(counter);
+    }
+
+    // Increment line counter
+    counter++;
+  }
+
+  IntegerVector indices_nv = wrap(indices);
+  boost_line_collection out_blc(out_lc);
+  List out_ls = List::create(out_blc, indices_nv);
+
+  return(out_ls);
+}
+
+
+
+// GEOMETRIC OPERATIONS
+LogicalMatrix intersects_blc(boost_line_collection blc) {
+
+  line_collection lc = blc.get_line_collection();
+  int n_lines = lc.size();
+  LogicalMatrix lm(n_lines, n_lines);
+  lm.fill(false);
+  for (int j = 0; j < n_lines; j++) {
+    for (int i = j; i < n_lines; i++) {
+      bool cr;
+      if (i != j) {
+        line l_i = lc[i];
+        line l_j = lc[j];
+        cr = bg::intersects(l_i, l_j);
+      } else {
+        cr = true;
+      }
+      lm(i,j) = cr;
+      lm(j,i) = cr;
+    }
+  }
+
+  return(lm);
+}
+
+NumericMatrix distance_blc(boost_line_collection blc) {
+
+  line_collection lc = blc.get_line_collection();
+  int n_lines = lc.size();
+  NumericMatrix dm(n_lines, n_lines);
+  dm.fill(0);
+  for (int j = 0; j < n_lines; j++) {
+    for (int i = j; i < n_lines; i++) {
+      if (i != j) {
+        line l_i = lc[i];
+        line l_j = lc[j];
+        double d = bg::distance(l_i, l_j);
+        dm(i,j) = d;
+        dm(j,i) = d;
+      }
+    }
+  }
+
+  return(dm);
+}
+
+
+// DRAWING BOARD
+void make_rtree(List coord_ls) {
+  std::vector<isegment> line_index_pairs;
+
+  // Create vector of segment-index pairs
+  for(int i = 0; i < coord_ls.size(); i++) {
+    NumericMatrix coord = coord_ls[i];
+    for (int j = 0; j < (coord.nrow()-1); j++) {
+      segment new_segment;
+      new_segment.first = bg::make<point>(coord(j,0), coord(j,1));
+      new_segment.second = bg::make<point>(coord(j+1,0), coord(j+1,1));
+      line_index_pairs.push_back(std::make_pair(new_segment, static_cast<unsigned int>(i)));
+    }
+  }
+
+  // Create rtree using packing algorithm
+  bgi::rtree<isegment, bgi::quadratic<16> > rtree_new(line_index_pairs);
+}
+
+
+// RCPP STUFF
+RCPP_EXPOSED_CLASS(boost_line_collection)
+  RCPP_MODULE(mod) {
+    class_<boost_line_collection>( "boost_line_collection" );
+    function( "make_blc", &make_blc );
+    function( "unpack_blc", &unpack_blc );
+    function( "node_blc", &node_blc );
+    function( "intersects_blc", &intersects_blc );
+    function( "distance_blc", &distance_blc );
+  }
+
+
+
+
+
+
+
+
+
+
 // line_collection break_line_on_line (const line &l1, const line &l2) {
 //   // Does not break lines with overlapping segments!
 //
@@ -230,196 +489,54 @@ line_collection break_line_on_points (const line &l, const std::vector<point> &p
 //
 //   return(broken_lc);
 // }
-
-List node_lc (line_collection in_lc) {
-  // Ignores collinear segments
-
-  // Get all intersection points
-  std::vector<std::vector<point> > intersection_matrix(in_lc.size(), std::vector<point>());
-  line_collection::const_iterator i, j;
-  std::vector<std::vector<point> >::iterator mi, mj;
-  for (i = in_lc.begin(), mi = intersection_matrix.begin(); i != in_lc.end(); ++i, ++mi) {
-    for (j = i, mj = mi; j != in_lc.end(); ++j, ++mj) {
-
-      line i_line = *i;
-      line j_line = *j;
-
-      if (bg::intersects(i_line, j_line) & !bg::overlaps(i_line, j_line)) {
-
-        std::vector<point> intersection_points;
-        bg::intersection(i_line, j_line, intersection_points);
-
-        //std::vector<point> point_vec_j = (*mj);
-        //std::vector<point> point_vec_i = (*mi);
-
-        (*mj).insert((*mj).end(), intersection_points.begin(), intersection_points.end());
-        (*mi).insert((*mi).end(), intersection_points.begin(), intersection_points.end());
-      }
-    }
-  }
-
-  // Break lines
-  line_collection out_lc;
-  std::vector<int> indices;
-
-  int counter = 1;
-  line_collection::const_iterator lc_it;
-  std::vector<std::vector<point> >::iterator ipoint_it;
-  for(lc_it = in_lc.begin(), ipoint_it = intersection_matrix.begin(); lc_it != in_lc.end(); ++lc_it, ++ipoint_it) {
-
-    line this_line = *lc_it;
-    std::vector<point> intersection_points = *ipoint_it;
-
-    //std::cout << intersection_points.size() << std::endl;
-
-    // Break this line on break points
-    line_collection broken_lc;
-    if (intersection_points.size() > 0) {
-      broken_lc = break_line_on_points(this_line, intersection_points);
-      for (int j = 0; j < broken_lc.size(); j++) {
-        out_lc.push_back(broken_lc[j]);
-        indices.push_back(counter);
-      }
-    } else {
-      line copy_line = this_line;
-      out_lc.push_back(copy_line);
-      indices.push_back(counter);
-    }
-
-    // Increment line counter
-    counter++;
-  }
-
-  IntegerVector indices_nv = wrap(indices);
-  List out_ls = List::create(out_lc, indices_nv);
-
-  return(out_ls);
-}
-
-List node_lc2 (line_collection in_lc) {
-  // Ignores collinear segments
-
-  line_collection out_lc;
-  std::vector<int> indices;
-
-  int counter = 1;
-  line_collection::const_iterator lc_it;
-  for(lc_it = in_lc.begin(); lc_it != in_lc.end(); ++lc_it) {
-
-    line this_line = *lc_it;
-    line_collection breaker_lc(in_lc);
-
-    // Get break points for this line
-    std::vector<point> intersection_points;
-    for (int i = 0; i < breaker_lc.size(); i++) {
-      line this_breaker = breaker_lc[i];
-      if (bg::intersects(this_line, this_breaker) & !bg::overlaps(this_line, this_breaker)) {
-
-        std::vector<point> this_intersection_points;
-        bg::intersection(this_line, this_breaker, this_intersection_points);
-        intersection_points.insert(intersection_points.end(), this_intersection_points.begin(), this_intersection_points.end());
-      }
-    }
-
-    // Break this line on break points
-    line_collection broken_lc;
-    if (intersection_points.size() > 0) {
-      broken_lc = break_line_on_points(this_line, intersection_points);
-      for (int j = 0; j < broken_lc.size(); j++) {
-        out_lc.push_back(broken_lc[j]);
-        indices.push_back(counter);
-      }
-    } else {
-      line copy_line = this_line;
-      out_lc.push_back(copy_line);
-      indices.push_back(counter);
-    }
-
-    // Increment line counter
-    counter++;
-  }
-
-  IntegerVector indices_nv = wrap(indices);
-  List out_ls = List::create(out_lc, indices_nv);
-
-  return(out_ls);
-}
+//
+// List node_lc (line_collection in_lc) {
+//   // Ignores collinear segments
+//
+//   line_collection out_lc;
+//   std::vector<int> indices;
+//
+//   int counter = 1;
+//   line_collection::const_iterator lc_it;
+//   for(lc_it = in_lc.begin(); lc_it != in_lc.end(); ++lc_it) {
+//
+//     line this_line = *lc_it;
+//     line_collection breaker_lc(in_lc);
+//
+//     // Get break points for this line
+//     std::vector<point> intersection_points;
+//     for (int i = 0; i < breaker_lc.size(); i++) {
+//       line this_breaker = breaker_lc[i];
+//       if (bg::intersects(this_line, this_breaker) & !bg::overlaps(this_line, this_breaker)) {
+//
+//         std::vector<point> this_intersection_points;
+//         bg::intersection(this_line, this_breaker, this_intersection_points);
+//         intersection_points.insert(intersection_points.end(), this_intersection_points.begin(), this_intersection_points.end());
+//       }
+//     }
+//
+//     // Break this line on break points
+//     line_collection broken_lc;
+//     if (intersection_points.size() > 0) {
+//       broken_lc = break_line_on_points(this_line, intersection_points);
+//       for (int j = 0; j < broken_lc.size(); j++) {
+//         out_lc.push_back(broken_lc[j]);
+//         indices.push_back(counter);
+//       }
+//     } else {
+//       line copy_line = this_line;
+//       out_lc.push_back(copy_line);
+//       indices.push_back(counter);
+//     }
+//
+//     // Increment line counter
+//     counter++;
+//   }
+//
+//   IntegerVector indices_nv = wrap(indices);
+//   List out_ls = List::create(out_lc, indices_nv);
+//
+//   return(out_ls);
+// }
 
 
-// OTHER GEOMETRIC OPERATIONS
-LogicalMatrix intersects_lc(const line_collection &lc) {
-
-  int n_lines = lc.size();
-  LogicalMatrix lm(n_lines, n_lines);
-  lm.fill(false);
-  for (int j = 0; j < n_lines; j++) {
-    for (int i = j; i < n_lines; i++) {
-      bool cr;
-      if (i != j) {
-        line l_i = lc[i];
-        line l_j = lc[j];
-        cr = bg::intersects(l_i, l_j);
-      } else {
-        cr = true;
-      }
-      lm(i,j) = cr;
-      lm(j,i) = cr;
-    }
-  }
-
-  return(lm);
-}
-
-NumericMatrix distance_lc(const line_collection &lc) {
-
-  int n_lines = lc.size();
-  NumericMatrix dm(n_lines, n_lines);
-  dm.fill(0);
-  for (int j = 0; j < n_lines; j++) {
-    for (int i = j; i < n_lines; i++) {
-      if (i != j) {
-        line l_i = lc[i];
-        line l_j = lc[j];
-        double d = bg::distance(l_i, l_j);
-        dm(i,j) = d;
-        dm(j,i) = d;
-      }
-    }
-  }
-
-  return(dm);
-}
-
-
-
-// R UNPACKERS
-List unpack_lc(const line_collection &lc) {
-
-  int n_lines = lc.size();
-  List coord_ls(n_lines);
-
-  for (int i = 0; i < n_lines; i++) {
-    line this_line = lc[i];
-    int len = this_line.size();
-    NumericMatrix this_coord(len, 2);
-    for (int j = 0; j < len; j++) {
-      this_coord(j,0) = this_line[j].x();
-      this_coord(j,1) = this_line[j].y();
-    }
-    coord_ls(i) = this_coord;
-  }
-
-  return coord_ls;
-}
-
-
-// RCPP STUFF
-RCPP_EXPOSED_CLASS(line_collection)
-RCPP_MODULE(mod) {
-  class_<line_collection>( "line_collection" );
-  function( "make_lc", &make_lc );
-  function( "unpack_lc", &unpack_lc );
-  function( "node_lc", &node_lc );
-  function( "intersects_lc", &intersects_lc );
-  function( "distance_lc", &distance_lc );
-}

@@ -19,7 +19,7 @@ BoostLines <- function(x, proj4string='') {
   if (inherits(x, 'SpatialLines')) {
     sl <- x
 
-    ## Make lc object
+    ## Make blc object
     coords_ls <- lapply(sl@lines, {
       function(x) {
         if (length(x@Lines) > 1) {
@@ -28,17 +28,17 @@ BoostLines <- function(x, proj4string='') {
         x@Lines[[1]]@coords
       }
     })
-    lc <- make_lc(coords_ls)
+    blc <- make_blc(coords_ls)
 
     ## Make and return class
     me <- list(
-      lc = lc,
+      blc = blc,
       proj4string = sl@proj4string
     )
-  } else if (inherits(x, 'Rcpp_line_collection')) {
+  } else if (inherits(x, 'Rcpp_boost_line_collection')) {
 
     me <- list(
-      lc = x,
+      blc = x,
       proj4string = proj4string
     )
   } else {
@@ -66,7 +66,7 @@ unboost <- function(bl) {
 
 unboost.BoostLines <- function(bl) {
 
-  coords_ls <- unpack_lc(bl$lc)
+  coords_ls <- unpack_blc(bl$blc)
   cntr <- 1
   lns_ls <- lapply(coords_ls, {
     function(x) {
@@ -95,10 +95,10 @@ bNode <- function(bl) {
 
 bNode.BoostLines <- function(bl) {
 
-  broken_ls <- node_lc(bl$lc)
-  broken_lc <- broken_ls[[1]]
+  broken_ls <- node_blc(bl$blc)
+  broken_blc <- broken_ls[[1]]
   broken_ids <- broken_ls[[2]]
-  broken_bl <- BoostLines(broken_lc, bl$proj4string)
+  broken_bl <- BoostLines(broken_blc, bl$proj4string)
   out_ls <- list(broken_bl, broken_ids)
 
   return(out_ls)
@@ -119,7 +119,7 @@ bIntersects <- function(bl) {
 
 bIntersects.BoostLines <- function(bl) {
 
-  lm <- intersects_lc(bl$lc)
+  lm <- intersects_blc(bl$blc)
 
   return(lm)
 }
@@ -139,7 +139,7 @@ bDistance <- function(bl) {
 
 bDistance.BoostLines <- function(bl) {
 
-  dm <- distance_lc(bl$lc)
+  dm <- distance_blc(bl$blc)
 
   return(dm)
 }
