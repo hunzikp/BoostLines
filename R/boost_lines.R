@@ -86,7 +86,7 @@ unboost.BoostLines <- function(bl) {
 #'
 #' @param bl A BoostLines object.
 #'
-#' @return A list of (1) the noded BoostLines object and (2) an integer vector of line IDs.
+#' @return A list of (1) a new, noded BoostLines object and (2) an integer vector of line IDs.
 #'
 #' @export
 bNode <- function(bl) {

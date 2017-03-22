@@ -47,6 +47,7 @@ public:
   boost_line_collection(line_collection in_lc) {
     line_collection new_lc = in_lc;
     orig_lc = new_lc;
+    has_rtree = false;
   }
 
   line_collection get_line_collection() {
@@ -55,22 +56,27 @@ public:
   }
 
   void make_rtree() {
-    std::vector<isegment> line_index_pairs;
 
-    // Create vector of segment-index pairs
-    for(int i = 0; i < orig_lc.size(); i++) {
-      line this_line = orig_lc[i];
-      for (int j = 0; j < (this_line.size()-1); j++) {
-        segment new_segment;
-        new_segment.first = this_line[j];
-        new_segment.second = this_line[j+1];
-        line_index_pairs.push_back(std::make_pair(new_segment, static_cast<unsigned int>(i)));
+    if (!has_rtree) {
+
+      std::vector<isegment> line_index_pairs;
+
+      // Create vector of segment-index pairs
+      for(int i = 0; i < orig_lc.size(); i++) {
+        line this_line = orig_lc[i];
+        for (int j = 0; j < (this_line.size()-1); j++) {
+          segment new_segment;
+          new_segment.first = this_line[j];
+          new_segment.second = this_line[j+1];
+          line_index_pairs.push_back(std::make_pair(new_segment, static_cast<unsigned int>(i)));
+        }
       }
-    }
 
-    // Create rtree using packing algorithm
-    bgi::rtree<isegment, bgi::quadratic<16> > rtree_new(line_index_pairs);
-    rtree_ = rtree_new;
+      // Create rtree using packing algorithm
+      bgi::rtree<isegment, bgi::quadratic<16> > rtree_new(line_index_pairs);
+      rtree_ = rtree_new;
+      has_rtree = true;
+    }
   }
 
   std::vector<int> get_intersecting_ids(line in_line) {
@@ -93,6 +99,7 @@ public:
 
 private:
   line_collection orig_lc;
+  bool has_rtree;
   bgi::rtree<isegment, bgi::quadratic<16> > rtree_;
 };
 
@@ -264,7 +271,6 @@ List node_blc (boost_line_collection blc) {
     }
   }
 
-
   // line_collection::const_iterator i, j;
   // std::vector<std::vector<point> >::iterator mi, mj;
   // for (i = in_lc.begin(), mi = intersection_matrix.begin(); i != in_lc.end(); ++i, ++mi) {
@@ -326,25 +332,24 @@ List node_blc (boost_line_collection blc) {
 // GEOMETRIC OPERATIONS
 LogicalMatrix intersects_blc(boost_line_collection blc) {
 
+  blc.make_rtree();
   line_collection lc = blc.get_line_collection();
   int n_lines = lc.size();
   LogicalMatrix lm(n_lines, n_lines);
   lm.fill(false);
-  for (int j = 0; j < n_lines; j++) {
-    for (int i = j; i < n_lines; i++) {
-      bool cr;
-      if (i != j) {
-        line l_i = lc[i];
-        line l_j = lc[j];
-        cr = bg::intersects(l_i, l_j);
-      } else {
-        cr = true;
+  for (int i = 0; i < n_lines; i++) {
+    line i_line = lc[i];
+    std::vector<int> j_idx = blc.get_intersecting_ids(i_line);
+    if (j_idx.size() > 0) {
+      for (int k = 0; k < j_idx.size(); k++) {
+        int j = j_idx[k];
+        if (j >= i) {
+          lm(i,j) = true;
+          lm(j,i) = true;
+        }
       }
-      lm(i,j) = cr;
-      lm(j,i) = cr;
     }
   }
-
   return(lm);
 }
 
@@ -367,26 +372,6 @@ NumericMatrix distance_blc(boost_line_collection blc) {
   }
 
   return(dm);
-}
-
-
-// DRAWING BOARD
-void make_rtree(List coord_ls) {
-  std::vector<isegment> line_index_pairs;
-
-  // Create vector of segment-index pairs
-  for(int i = 0; i < coord_ls.size(); i++) {
-    NumericMatrix coord = coord_ls[i];
-    for (int j = 0; j < (coord.nrow()-1); j++) {
-      segment new_segment;
-      new_segment.first = bg::make<point>(coord(j,0), coord(j,1));
-      new_segment.second = bg::make<point>(coord(j+1,0), coord(j+1,1));
-      line_index_pairs.push_back(std::make_pair(new_segment, static_cast<unsigned int>(i)));
-    }
-  }
-
-  // Create rtree using packing algorithm
-  bgi::rtree<isegment, bgi::quadratic<16> > rtree_new(line_index_pairs);
 }
 
 

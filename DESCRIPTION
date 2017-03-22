@@ -4,7 +4,7 @@ Title: Fast Geometric Operations on Lines
 Version: 0.1.0.9000
 Author: Philipp Hunziker
 Maintainer: Philipp Hunziker <hunzikp@gmail.com>
-Description: Fast geometric operations on lines, esp. noding.
+Description: Fast geometric operations on lines using the Boost Geometry library.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

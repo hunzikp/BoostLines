@@ -10,7 +10,7 @@ bNode(bl)
 \item{bl}{A BoostLines object.}
 }
 \value{
-A list of (1) the noded BoostLines object and (2) an integer vector of line IDs.
+A list of (1) a new, noded BoostLines object and (2) an integer vector of line IDs.
 }
 \description{
 Breaks lines at all proper intersections.
