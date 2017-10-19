@@ -4,10 +4,10 @@
 \alias{BoostLines}
 \title{Create a BoostLines Object}
 \usage{
-BoostLines(x, proj4string = "")
+BoostLines(x, proj4string = CRS(""))
 }
 \arguments{
-\item{x}{A SpatialLines object or a Rcpp_line_collection object.}
+\item{x}{A SpatialLines object or a Rcpp_boost_line_collection object.}
 
 \item{proj4string}{A proj4string, ignored if \code{x} is SpatialLines.}
 }

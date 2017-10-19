@@ -23,6 +23,7 @@ typedef std::pair<segment, unsigned int> isegment;
 typedef std::vector<line> line_collection;
 typedef std::vector<segment> segment_collection;
 
+
 // STRUCTS
 struct dpoint {
 
@@ -134,6 +135,10 @@ public:
     line_ids.erase(last, line_ids.end());
 
     return line_ids;
+  }
+
+  int get_line_count() {
+    return main_lc.size();
   }
 
 private:
@@ -381,6 +386,175 @@ NumericMatrix distance_blc(boost_line_collection blc) {
 }
 
 
+// LENGTH FUNCTIONS
+double get_distance(point p1, point p2) {
+  double dist = sqrt(pow(p1.x() - p2.x(), 2.0) + pow(p1.y() - p2.y(), 2.0));
+  return dist;
+}
+
+double get_distance_haversine(point p1, point p2, double r = 6378137.0) {
+  NumericVector q1 = NumericVector::create(p1.x(), p1.y());
+  NumericVector q2 = NumericVector::create(p2.x(), p2.y());
+  double toRad = M_PI/180.0;
+  for (unsigned int i = 0; i < 2; ++i) {
+    q1[i] *= toRad;
+    q2[i] *= toRad;
+  }
+  double dLat = q2[1] - q1[1];
+  double dLon = q2[0] - q1[0];
+  double a = sin(dLat/2) * sin(dLat/2) + cos(q1[1]) * cos(q2[1]) * sin(dLon/2) * sin(dLon/2);
+  double dist = 2 * atan2(sqrt(a), sqrt(1 - a)) * r;
+  return dist;
+}
+
+double get_length(line &l, bool &lonlat) {
+  double length = 0.0;
+  if (lonlat) {
+    for (unsigned int i = 0; i < l.size() - 1; i++) {
+      length += get_distance_haversine(l[i], l[i+1]);
+    }
+  } else {
+    for (unsigned int i = 0; i < l.size() - 1; i++) {
+      length += get_distance(l[i], l[i+1]);
+    }
+  }
+  return length;
+}
+
+NumericVector get_lengths(boost_line_collection blc, bool lonlat) {
+
+  line_collection lc = blc.get_line_collection();
+  NumericVector lengths(lc.size());
+  for (unsigned int i = 0; i < lc.size(); i ++) {
+    lengths[i] = get_length(lc[i], lonlat);
+  }
+
+  return lengths;
+}
+
+
+// GET LIST OF LINE COORDINATES
+List get_line_coords(boost_line_collection blc) {
+
+  int N = blc.get_line_count();
+  List out_ls = List(N);
+  line_collection lc = blc.get_line_collection();
+  for (unsigned int i = 0; i < N; i++) {
+    line this_line = lc[i];
+    NumericMatrix coords(this_line.size(), 2);
+    for (unsigned int j = 0; j < this_line.size(); j++) {
+      coords(j, 0) = this_line[j].x();
+      coords(j, 1) = this_line[j].y();
+    }
+    out_ls(i) = coords;
+  }
+
+  return out_ls;
+}
+
+
+// MAKE GRIDDED BLC
+boost_line_collection make_gridded_blc(double x, double y, int nrow, int ncol, double res, bool n8) {
+
+  line_collection new_lc;
+  for (unsigned int j = 0; j < ncol; j++) {
+    for (unsigned int i = 0; i < nrow; i++) {
+      double start_x = x + j*res;
+      double start_y = y - i*res;
+
+      // Down line
+      if (i < nrow-1) {
+        NumericMatrix down_coord(2,2);
+        down_coord(0,0) = start_x;
+        down_coord(0,1) = start_y;
+        down_coord(1,0) = start_x;
+        down_coord(1,1) = start_y - res;
+        line down_line = make_line(down_coord);
+        new_lc.push_back(down_line);
+      }
+
+      // Right line
+      if (j < ncol-1) {
+        NumericMatrix right_coord(2,2);
+        right_coord(0,0) = start_x;
+        right_coord(0,1) = start_y;
+        right_coord(1,0) = start_x + res;
+        right_coord(1,1) = start_y;
+        line right_line = make_line(right_coord);
+        new_lc.push_back(right_line);
+      }
+
+      if (n8) {
+        // Right Diag line
+        if (i < nrow-1 && j < ncol-1) {
+          // First half (to center)
+          NumericMatrix rdiag_coord1(2,2);
+          rdiag_coord1(0,0) = start_x;
+          rdiag_coord1(0,1) = start_y;
+          rdiag_coord1(1,0) = start_x + res/2;
+          rdiag_coord1(1,1) = start_y - res/2;
+          line rdiag_line1 = make_line(rdiag_coord1);
+          new_lc.push_back(rdiag_line1);
+
+          // Second half (from center)
+          NumericMatrix rdiag_coord2(2,2);
+          rdiag_coord2(0,0) = start_x + res/2;
+          rdiag_coord2(0,1) = start_y - res/2;
+          rdiag_coord2(1,0) = start_x + res;
+          rdiag_coord2(1,1) = start_y - res;
+          line rdiag_line2 = make_line(rdiag_coord2);
+          new_lc.push_back(rdiag_line2);
+        }
+
+        // Left Diag line
+        if (i < nrow-1 && j > 0) {
+          // First half (to center)
+          NumericMatrix ldiag_coord1(2,2);
+          ldiag_coord1(0,0) = start_x;
+          ldiag_coord1(0,1) = start_y;
+          ldiag_coord1(1,0) = start_x - res/2;
+          ldiag_coord1(1,1) = start_y - res/2;
+          line ldiag_line1 = make_line(ldiag_coord1);
+          new_lc.push_back(ldiag_line1);
+
+          // Second half (from center)
+          NumericMatrix ldiag_coord2(2,2);
+          ldiag_coord2(0,0) = start_x - res/2;
+          ldiag_coord2(0,1) = start_y - res/2;
+          ldiag_coord2(1,0) = start_x - res;
+          ldiag_coord2(1,1) = start_y - res;
+          line ldiag_line2 = make_line(ldiag_coord2);
+          new_lc.push_back(ldiag_line2);
+        }
+      }
+    }
+  }
+
+  // Make blc
+  boost_line_collection new_blc(new_lc);
+
+  return(new_lc);
+}
+
+
+// APPEND TWO BLC OBJECTS
+boost_line_collection append_blc(boost_line_collection blc1, boost_line_collection blc2) {
+
+  line_collection lc1 = blc1.get_line_collection();
+  line_collection lc2 = blc2.get_line_collection();
+  lc1.insert(lc1.end(), lc2.begin(), lc2.end());
+
+  boost_line_collection new_blc = boost_line_collection(lc1);
+  return(new_blc);
+}
+
+
+// COUNT LENGTH OF BLC OBJECT
+int get_line_count(boost_line_collection blc) {
+  return blc.get_line_count();
+}
+
+
 // RCPP STUFF
 RCPP_EXPOSED_CLASS(boost_line_collection)
   RCPP_MODULE(mod) {
@@ -390,6 +564,11 @@ RCPP_EXPOSED_CLASS(boost_line_collection)
     function( "node_blc", &node_blc );
     function( "intersects_blc", &intersects_blc );
     function( "distance_blc", &distance_blc );
+    function( "make_gridded_blc", &make_gridded_blc );
+    function( "append_blc", &append_blc );
+    function( "get_lengths", &get_lengths );
+    function( "get_line_count", &get_line_count );
+    function( "get_line_coords", &get_line_coords );
   }
 
 
