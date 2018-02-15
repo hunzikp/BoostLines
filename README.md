@@ -1,7 +1,7 @@
 BoostLines package
 ================
 Philipp Hunziker
-October 19, 2017
+Feburary 15, 2018
 
 Fast geometric operations on lines using [Boost Geometries](http://www.boost.org/doc/libs/1_65_1/libs/geometry/doc/html/index.html); primarily for work on planar networks.
 
@@ -31,6 +31,7 @@ Usage
 -   [Elminiate multilines](#elminiate-multilines-in-spatiallines-objects)
 -   [Line lengths](#calculate-line-lengths)
 -   [Cast as `igraph`](#cast-as-igraph-object)
+-   [Split lines into shorter lines](#split-lines)
 
 ### Cast to and from `SpatialLines` objects
 

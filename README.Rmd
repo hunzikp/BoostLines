@@ -36,6 +36,7 @@ install_github("hunzikp/BoostLines")
 * [Elminiate multilines](#elminiate-multilines-in-spatiallines-objects)
 * [Line lengths](#calculate-line-lengths)
 * [Cast as `igraph`](#cast-as-igraph-object)
+* [Split lines into shorter lines](#split-lines)
 
 ### Cast to and from `SpatialLines` objects
 
