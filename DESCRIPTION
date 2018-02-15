@@ -1,7 +1,7 @@
 Package: BoostLines
 Type: Package
 Title: Fast Geometric Operations on Lines
-Version: 0.1.0.9001
+Version: 0.1.0.9002
 Author: Philipp Hunziker
 Maintainer: Philipp Hunziker <hunzikp@gmail.com>
 Description: Fast geometric operations on lines using the Boost Geometry library.

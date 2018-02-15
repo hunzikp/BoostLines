@@ -407,6 +407,16 @@ double get_distance_haversine(point p1, point p2, double r = 6378137.0) {
   return dist;
 }
 
+double get_distance(point p1, point p2, bool lonlat, double r = 6378137.0) {
+  double out;
+  if (lonlat) {
+    out = get_distance_haversine(p1, p2, r);
+  } else {
+    out = get_distance(p1, p2);
+  }
+  return out;
+}
+
 double get_length(line &l, bool &lonlat) {
   double length = 0.0;
   if (lonlat) {
@@ -555,6 +565,116 @@ int get_line_count(boost_line_collection blc) {
 }
 
 
+// SPLIT LINES INTO SHORTER LINES OF MAXIMUM DESIRED LENGTH
+line_collection split_line(line in_line, double maxlen) {
+
+  // First we copy the in_line to a decue because
+  // unlike vectors, deques allow insertion at the front and at the back
+  std::deque<point> in_line_dq;
+  copy(in_line.begin(), in_line.end(), inserter(in_line_dq, in_line_dq.end()));
+
+  // Now we split the in line into shorter lines
+  line_collection new_line_collection;
+  while(in_line_dq.size() > 1) { // Continue creating new lines until only the end point is left
+
+    // Initialize a new line
+    line new_line;
+    double new_line_length = 0;
+    point start_point = in_line_dq.at(0);
+    new_line.push_back(start_point);
+    in_line_dq.erase(in_line_dq.begin());
+
+    // Add points to new line until its finished
+    bool new_line_finished = false;
+    while(!new_line_finished) {
+
+      point current_point = new_line.at(new_line.size()-1);
+      point next_in_line_point = in_line_dq.at(0);
+      double dist_to_next_in_line_point = get_distance(current_point, next_in_line_point);
+      double remaining_dist = maxlen - new_line_length;
+
+      if (dist_to_next_in_line_point <= remaining_dist) {
+
+        // Just add next in-line point to new line
+        new_line.push_back(next_in_line_point);
+
+        // Finish if the line has hit max length
+        new_line_length = new_line_length + dist_to_next_in_line_point;
+        if (new_line_length >= maxlen) {
+          new_line_finished = true;
+        }
+
+        // Also finish if only the end point is left in the in-line
+        if (in_line_dq.size() == 1) {
+          new_line_finished = true;
+        }
+
+        // If the line isn't finished: remove the point we just added to the new line from the in-line
+        if (!new_line_finished) {
+          in_line_dq.erase(in_line_dq.begin());
+        }
+
+
+      } else {
+
+        // Find intermediate point that is remaining_dist away from current point
+        double x1 = current_point.x();
+        double y1 = current_point.y();
+        double x2 = next_in_line_point.x();
+        double y2 = next_in_line_point.y();
+        double D = dist_to_next_in_line_point;
+        double d = remaining_dist;
+
+        double x3 = x1 + (d/D)*(x2-x1);
+        double y3 = y1 + (d/D)*(y2-y1);
+        point intermediate_point = bg::make<point>(x3, y3);
+
+        // Add intermediate point to new line
+        new_line.push_back(intermediate_point);
+
+        // Prepend in-line with new intermediate point
+        in_line_dq.push_front(intermediate_point);
+
+        // Flag the new line as finished
+        new_line_finished = true;
+      }
+
+      // Update new line length
+      bool lonlat = false;
+      new_line_length = get_length(new_line, lonlat);
+    }
+
+    // Add the finished new line to the line collection
+    new_line_collection.push_back(new_line);
+  }
+
+  return new_line_collection;
+}
+
+List split_blc(boost_line_collection blc, double maxlen) {
+
+  std::vector<int> indices; // Container to return original indices
+  line_collection in_lc = blc.get_line_collection();
+  line_collection out_lc;
+
+  for (int i = 0; i < in_lc.size(); ++i) {
+    line in_line = in_lc.at(i);
+    line_collection split_lines = split_line(in_line, maxlen);
+    out_lc.insert(out_lc.end(), split_lines.begin(), split_lines.end());
+
+    for (int j = 0; j < split_lines.size(); ++j) {
+      indices.push_back(i+1);
+    }
+  }
+
+  IntegerVector indices_rv = wrap(indices);
+  boost_line_collection new_blc = boost_line_collection(out_lc);
+  List out_ls = List::create(new_blc, indices_rv);
+
+  return out_ls;
+}
+
+
 // RCPP STUFF
 RCPP_EXPOSED_CLASS(boost_line_collection)
   RCPP_MODULE(mod) {
@@ -569,13 +689,6 @@ RCPP_EXPOSED_CLASS(boost_line_collection)
     function( "get_lengths", &get_lengths );
     function( "get_line_count", &get_line_count );
     function( "get_line_coords", &get_line_coords );
+    function( "split_blc", &split_blc );
   }
-
-
-
-
-
-
-
-
 

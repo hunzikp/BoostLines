@@ -1,7 +1,7 @@
 ---
 title: "BoostLines package"
 author: "Philipp Hunziker"
-date: "October 19, 2017"
+date: "Feburary 15, 2018"
 output: github_document
 ---
 
@@ -188,4 +188,14 @@ print(edge_attr_names(gr))
 
 ```
 
+### Split lines
 
+```{r split}
+## Split
+out.ls <- bSplit(test.bl, maxlen = 0.05)
+
+## Summary of line lengths
+split.bl <- out.ls[[1]]
+split.ids <- out.ls[[2]]  # integer vector of original IDs
+summary(bLength(split.bl, lonlat = FALSE))
+```

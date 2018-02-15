@@ -405,5 +405,34 @@ boost2graph <- function(x, df, lonlat=FALSE, plot.result=FALSE) {
 }
 
 
+#' Split Lines
+#'
+#' Splits lines into shorter lines of length maxlen.
+#'
+#' Input lines are split into shorter lines of length maxlen, plus a remainder of length smaller than maxlength.
+#' Input lines shorter than maxlen are left untouched.
+#'
+#'
+#' @param bl A BoostLines object.
+#' @param maxlen The maximum length of the split lines.
+#'
+#' @return A list of (1) a new, split BoostLines object and (2) an integer vector of line IDs.
+#'
+#' @export
+bSplit <- function(bl, maxlen) {
+  UseMethod("bSplit", bl)
+}
+
+bSplit.BoostLines <- function(bl, maxlen) {
+
+  splitted_ls <- split_blc(bl$blc, maxlen)
+  splitted_blc <- splitted_ls[[1]]
+  splitted_ids <- splitted_ls[[2]]
+  splitted_bl <- BoostLines(splitted_blc, bl$proj4string)
+  out_ls <- list(splitted_bl, splitted_ids)
+
+  return(out_ls)
+}
+
 
 

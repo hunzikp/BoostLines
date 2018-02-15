@@ -3,7 +3,7 @@ BoostLines package
 Philipp Hunziker
 October 19, 2017
 
-Fast geometric operations on lines using [Boost Geometries](http://www.boost.org/doc/libs/1_65_1/libs/geometry/doc/html/index.html); primarily for routing applications.
+Fast geometric operations on lines using [Boost Geometries](http://www.boost.org/doc/libs/1_65_1/libs/geometry/doc/html/index.html); primarily for work on planar networks.
 
 <span style="color:red">CAUTION</span>: This package is in development - its interface may change.
 
@@ -202,3 +202,18 @@ print(edge_attr_names(gr))
 ```
 
     ## [1] "order"   "edge_id" "length"
+
+### Split lines
+
+``` r
+## Split
+out.ls <- bSplit(test.bl, maxlen = 0.05)
+
+## Summary of line lengths
+split.bl <- out.ls[[1]]
+split.ids <- out.ls[[2]]  # integer vector of original IDs
+summary(bLength(split.bl, lonlat = FALSE))
+```
+
+    ##      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+    ## 2.386e-05 5.000e-02 5.000e-02 4.523e-02 5.000e-02 5.000e-02
