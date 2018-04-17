@@ -351,12 +351,13 @@ length.BoostLines <- function(bl) {
 #' @param lonlat A boolean indiciating whether BoostLines are in lat/lon format.
 #' If TRUE, the length edge attribute added to the igraph object is measured in meters.
 #' @param plot.result Should resulting graph be plotted?
+#' @param snap Coordinates are rounded to multiple of \code{snap}; i.e. snapped to a grid with increments equal to \code{snap}.
 #'
 #' @return A \code{igraph::graph} object.
 #'
 #' @import igraph
 #'
-boost2graph <- function(x, df, lonlat=FALSE, plot.result=FALSE) {
+boost2graph <- function(x, df, lonlat=FALSE, plot.result=FALSE, snap = 1e-12) {
 
   if (!inherits(x, 'BoostLines')) {
     stop('x is not a BoostLines object.')
@@ -367,6 +368,7 @@ boost2graph <- function(x, df, lonlat=FALSE, plot.result=FALSE) {
 
   ## Make vertex DF
   coord.ls <- get_line_coords(x$blc)
+  coord.ls <- lapply(coord.ls, function(x) round(x/snap)*snap)
   endcoords.ls <- lapply(coord.ls, function(x) x[c(1,nrow(x)),])
   endcoord.mat <- unique(do.call("rbind", endcoords.ls))
   vertex.df <- data.frame(vid=1:nrow(endcoord.mat), x=endcoord.mat[,1], y=endcoord.mat[,2])

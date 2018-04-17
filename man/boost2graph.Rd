@@ -4,7 +4,7 @@
 \alias{boost2graph}
 \title{Fast boost2graph}
 \usage{
-boost2graph(x, df, lonlat = FALSE, plot.result = FALSE)
+boost2graph(x, df, lonlat = FALSE, plot.result = FALSE, snap = 1e-12)
 }
 \arguments{
 \item{x}{A BoostLine object.}
@@ -15,6 +15,8 @@ boost2graph(x, df, lonlat = FALSE, plot.result = FALSE)
 If TRUE, the length edge attribute added to the igraph object is measured in meters.}
 
 \item{plot.result}{Should resulting graph be plotted?}
+
+\item{snap}{Coordinates are rounded to multiple of \code{snap}; i.e. snapped to a grid with increments equal to \code{snap}.}
 }
 \value{
 A \code{igraph::graph} object.
