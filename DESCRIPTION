@@ -14,3 +14,4 @@ Imports:
     sp
 LinkingTo: Rcpp, BH
 RoxygenNote: 5.0.1
+SystemRequirements: C++14
